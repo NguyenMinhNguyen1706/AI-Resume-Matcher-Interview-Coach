@@ -3,6 +3,24 @@ import path from 'path';
 
 test.describe('AI Resume Matcher & Interview Coach E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
+    // Mock LangGraph threads creation
+    await page.route('**/threads', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ thread_id: 'mock_thread_123' }),
+      });
+    });
+
+    // Mock /api/ingest for isolated and fast file upload testing
+    await page.route('**/api/ingest', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, count: 1 }),
+      });
+    });
+
     // Navigate to homepage
     await page.goto('/');
     // Wait for the main heading to be visible
