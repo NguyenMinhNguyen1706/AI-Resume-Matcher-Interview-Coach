@@ -40,7 +40,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
     message.sources.length > 0;
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div
+      data-testid={isUser ? 'user-message' : 'assistant-message'}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+    >
       <div
         className={`max-w-[85%] ${isUser ? 'bg-black text-white' : 'bg-muted'} rounded-2xl px-4 py-2`}
       >

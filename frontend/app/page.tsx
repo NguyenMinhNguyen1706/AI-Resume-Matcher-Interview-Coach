@@ -157,29 +157,33 @@ export default function Home() {
 
           const { event, data } = sseEvent;
 
-          if (event === 'messages/partial') {
-            if (Array.isArray(data)) {
-              const lastObj = data[data.length - 1];
-              if (lastObj?.type === 'ai') {
-                const partialContent = lastObj.content ?? '';
-
-                if (
-                  typeof partialContent === 'string' &&
-                  !partialContent.startsWith('{')
-                ) {
-                  setMessages((prev) => {
-                    const newArr = [...prev];
-                    if (
-                      newArr.length > 0 &&
-                      newArr[newArr.length - 1].role === 'assistant'
-                    ) {
-                      newArr[newArr.length - 1].content = partialContent;
-                      newArr[newArr.length - 1].sources =
-                        lastRetrievedDocsRef.current;
-                    }
-                    return newArr;
-                  });
-                }
+          if (event === 'messages/partial' || event === 'messages') {
+            const msgList = Array.isArray(data) ? data : [data];
+            const lastObj = msgList[msgList.length - 1];
+            if (lastObj?.type === 'ai' || lastObj?.role === 'assistant') {
+              let partialContent = lastObj.content ?? '';
+              if (Array.isArray(partialContent)) {
+                partialContent = partialContent
+                  .map((c: any) => (typeof c === 'string' ? c : c?.text || ''))
+                  .join('');
+              }
+              if (
+                typeof partialContent === 'string' &&
+                !partialContent.startsWith('{') &&
+                partialContent.trim().length > 0
+              ) {
+                setMessages((prev) => {
+                  const newArr = [...prev];
+                  if (
+                    newArr.length > 0 &&
+                    newArr[newArr.length - 1].role === 'assistant'
+                  ) {
+                    newArr[newArr.length - 1].content = partialContent;
+                    newArr[newArr.length - 1].sources =
+                      lastRetrievedDocsRef.current;
+                  }
+                  return newArr;
+                });
               }
             }
           } else if (event === 'updates' && data) {
@@ -193,8 +197,39 @@ export default function Home() {
               const retrievedDocs = (data as RetrieveDocumentsNodeUpdates)
                 .retrieveDocuments.documents as PDFDocument[];
               lastRetrievedDocsRef.current = retrievedDocs;
-            } else {
-              lastRetrievedDocsRef.current = [];
+            }
+
+            // Also capture completed node responses from updates (directAnswer or generateResponse)
+            const nodeUpdate =
+              data.generateResponse || data.directAnswer || null;
+            if (nodeUpdate?.messages && Array.isArray(nodeUpdate.messages)) {
+              const aiMessages = nodeUpdate.messages.filter(
+                (m: any) =>
+                  m.type === 'ai' ||
+                  m.role === 'assistant' ||
+                  (typeof m._getType === 'function' && m._getType() === 'ai'),
+              );
+              const lastAiMsg = aiMessages[aiMessages.length - 1];
+              if (lastAiMsg?.content) {
+                let finalContent = lastAiMsg.content;
+                if (Array.isArray(finalContent)) {
+                  finalContent = finalContent
+                    .map((c: any) => (typeof c === 'string' ? c : c?.text || ''))
+                    .join('');
+                }
+                setMessages((prev) => {
+                  const newArr = [...prev];
+                  if (
+                    newArr.length > 0 &&
+                    newArr[newArr.length - 1].role === 'assistant'
+                  ) {
+                    newArr[newArr.length - 1].content = String(finalContent);
+                    newArr[newArr.length - 1].sources =
+                      lastRetrievedDocsRef.current;
+                  }
+                  return newArr;
+                });
+              }
             }
           }
         }
@@ -451,7 +486,7 @@ export default function Home() {
 
           {/* Uploaded Files Preview */}
           {files.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div data-testid="file-preview-list" className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {files.map((file, index) => (
                 <FilePreview
                   key={`${file.name}-${index}`}
