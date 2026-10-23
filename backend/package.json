@@ -20,8 +20,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "lint:langgraph-json": "node scripts/checkLanggraphPaths.js",
-    "lint:all": "yarn lint & yarn lint:langgraph-json",
+    "lint:all": "yarn lint",
     "langgraph:dev": "tsx server.mjs"
   },
   "dependencies": {

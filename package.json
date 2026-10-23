@@ -12,10 +12,13 @@
     "scripts": {
       "build": "yarn run turbo:command build",
       "turbo:command": "yarn turbo",
-      "lint": "yarn run turbo:command lint",
+      "lint": "yarn workspace backend lint && yarn workspace frontend lint",
       "lint:fix": "yarn run turbo:command lint:fix", 
       "format": "yarn run turbo:command format",
-      "format:check": "yarn run turbo:command format:check"
+      "format:check": "yarn run turbo:command format:check",
+      "test": "yarn workspace backend test && yarn workspace frontend test",
+      "test:e2e": "yarn workspace frontend test:e2e",
+      "typecheck": "tsc --noEmit --project backend/tsconfig.json && tsc --noEmit --project frontend/tsconfig.json"
     },
     "devDependencies": {
       "turbo": "latest"

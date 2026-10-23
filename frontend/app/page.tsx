@@ -136,9 +136,13 @@ export default function Home() {
 
       const decoder = new TextDecoder();
 
-      while (true) {
+      let isDone = false;
+      while (!isDone) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          isDone = true;
+          break;
+        }
 
         const chunkStr = decoder.decode(value);
         const lines = chunkStr.split('\n').filter(Boolean);
