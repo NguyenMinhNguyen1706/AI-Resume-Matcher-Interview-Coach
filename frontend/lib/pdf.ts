@@ -9,7 +9,10 @@ import path from 'path';
  * @param file - The PDF file to process.
  * @returns An array of Document objects extracted from the PDF.
  */
-export async function processPDF(file: File): Promise<Document[]> {
+export async function processPDF(
+  file: File,
+  sessionId?: string,
+): Promise<Document[]> {
   const buffer = await bufferFile(file);
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-'));
   const tempFilePath = path.join(tempDir, file.name);
@@ -19,9 +22,12 @@ export async function processPDF(file: File): Promise<Document[]> {
     const loader = new PDFLoader(tempFilePath);
     const docs = await loader.load();
 
-    // Add filename to metadata for each document
+    // Add filename and sessionId to metadata for each document
     docs.forEach((doc) => {
       doc.metadata.filename = file.name;
+      if (sessionId) {
+        doc.metadata.sessionId = sessionId;
+      }
     });
 
     return docs;

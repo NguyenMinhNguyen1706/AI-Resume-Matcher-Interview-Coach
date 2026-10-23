@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
+    const sessionId = (formData.get('sessionId') as string) || undefined;
     const files: File[] = [];
 
     for (const [key, value] of formData.entries()) {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     const allDocs: Document[] = [];
     for (const file of files) {
       try {
-        const docs = await processPDF(file);
+        const docs = await processPDF(file, sessionId);
         allDocs.push(...docs);
       } catch (error: any) {
         console.error(`Error processing file ${file.name}:`, error);

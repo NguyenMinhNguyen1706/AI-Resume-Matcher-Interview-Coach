@@ -6,7 +6,7 @@ export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    const { message, threadId } = await req.json();
+    const { message, threadId, sessionId } = await req.json();
 
     if (!message) {
       return new NextResponse(
@@ -50,6 +50,7 @@ export async function POST(req: Request) {
           config: {
             configurable: {
               ...retrievalAssistantStreamConfig,
+              filterKwargs: sessionId ? { sessionId } : {},
             },
           },
         },

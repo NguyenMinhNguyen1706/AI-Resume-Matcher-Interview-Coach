@@ -6,7 +6,7 @@ type IndexConfigurables = IndexConfiguration;
 export const retrievalAssistantStreamConfig: StreamConfigurables = {
   queryModel: 'google-genai/gemini-3.8-flash',
   retrieverProvider: 'supabase',
-  k: 5,
+  k: 20,
 };
 
 /**

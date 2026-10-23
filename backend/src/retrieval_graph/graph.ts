@@ -33,9 +33,9 @@ async function checkQueryType(
     query: state.query,
   });
 
-  const response = await model
+  const response = (await (model as any)
     .withStructuredOutput(schema)
-    .invoke(formattedPrompt.toString());
+    .invoke(formattedPrompt.toString())) as { route: 'retrieve' | 'direct' };
 
   const route = response.route;
 
