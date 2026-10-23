@@ -1,33 +1,30 @@
-import { POST } from '../../../app/api/ingest/route'; // Import the actual route handler
+import { POST } from '@/app/api/ingest/route';
 import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
 import { processPDF } from '@/lib/pdf';
 import { langGraphServerClient } from '@/lib/langgraph-server';
 
-// Mock the processPDF function
+// Mock processPDF
 jest.mock('@/lib/pdf', () => ({
-  processPDF: jest.fn().mockImplementation((file: File) => {
+  processPDF: jest.fn().mockImplementation((file: File, sessionId?: string) => {
     return Promise.resolve([
       {
-        pageContent: 'Test content',
-        metadata: { filename: file.name },
+        pageContent: 'Test resume content',
+        metadata: { filename: file.name, ...(sessionId ? { sessionId } : {}) },
       },
     ]);
   }),
 }));
 
-// Mock the langGraphServerClient
+// Mock langGraphServerClient
 jest.mock('@/lib/langgraph-server', () => {
   return {
     langGraphServerClient: {
       createThread: jest
         .fn()
-        .mockResolvedValue({ thread_id: 'test-thread-id' }),
+        .mockResolvedValue({ thread_id: 'test-thread-id-123' }),
       client: {
         runs: {
+          wait: jest.fn().mockResolvedValue({ status: 'success' }),
           stream: jest.fn().mockImplementation(async function* () {
             yield { data: 'test' };
           }),
@@ -36,133 +33,92 @@ jest.mock('@/lib/langgraph-server', () => {
     },
   };
 });
-describe('PDF Ingest Route (node-fetch)', () => {
-  const baseUrl = 'http://localhost:3000'; // Replace with your dev server URL
-  const ingestUrl = `${baseUrl}/api/ingest`;
-  const pdfFilePath = path.join(__dirname, 'test.pdf');
 
-  beforeAll(() => {
-    // Create a dummy PDF file for testing
-    const minimalPDF = `%PDF-1.7
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>endobj
-4 0 obj<</Length 21>>stream
-BT /F1 12 Tf (Test) Tj ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f
-0000000009 00000 n
-0000000056 00000 n
-0000000107 00000 n
-0000000200 00000 n
-trailer<</Size 5/Root 1 0 R>>
-startxref
-271
-%%EOF`;
-    fs.writeFileSync(pdfFilePath, minimalPDF);
+describe('POST /api/ingest Route Handler', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  afterAll(() => {
-    // Clean up the dummy PDF file
-    fs.unlinkSync(pdfFilePath);
-  });
-
-  it.skip('should reject empty requests', async () => {
+  it('should reject empty requests with status 400', async () => {
     const formData = new FormData();
-    const response = await fetch(ingestUrl, {
-      method: 'POST',
-      body: formData,
-    });
+    const req = {
+      formData: async () => formData,
+    } as unknown as NextRequest;
 
-    expect(response.status).toBe(400);
-    const data = await response.json();
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
     expect(data.error).toBe('No files provided');
   });
 
-  it('should reject non-PDF files', async () => {
+  it('should reject non-PDF files with status 400', async () => {
     const formData = new FormData();
-    formData.append('files', fs.createReadStream('jest.config.js'), 'test.txt'); // Attach a non-PDF file
-
-    const response = await fetch(ingestUrl, {
-      method: 'POST',
-      body: formData,
+    const txtFile = new File(['plain text'], 'document.txt', {
+      type: 'text/plain',
     });
+    formData.append('files', txtFile);
 
-    expect(response.status).toBe(400);
-    const data = await response.json();
+    const req = {
+      formData: async () => formData,
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
     expect(data.error).toContain('Only PDF files are allowed');
   });
 
-  it('should accept PDF files', async () => {
+  it('should reject requests with more than 5 files with status 400', async () => {
     const formData = new FormData();
-    formData.append('files', fs.createReadStream(pdfFilePath), 'test.pdf'); // Attach the PDF file
+    for (let i = 0; i < 6; i++) {
+      formData.append(
+        'files',
+        new File([`pdf-dummy-${i}`], `file_${i}.pdf`, {
+          type: 'application/pdf',
+        }),
+      );
+    }
 
-    const response = await fetch(ingestUrl, {
-      method: 'POST',
-      body: formData,
-    });
+    const req = {
+      formData: async () => formData,
+    } as unknown as NextRequest;
 
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.message).toContain('');
-    expect(data.threadId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Too many files. Maximum 5 files allowed.');
   });
 
-  it('should handle multiple PDFs', async () => {
+  it('should successfully ingest PDF files and return threadId', async () => {
     const formData = new FormData();
-    formData.append('files', fs.createReadStream(pdfFilePath), 'test1.pdf');
-    formData.append('files', fs.createReadStream(pdfFilePath), 'test2.pdf');
-
-    const response = await fetch(ingestUrl, {
-      method: 'POST',
-      body: formData,
+    const pdfFile = new File(['%PDF-1.7 dummy content'], 'cv.pdf', {
+      type: 'application/pdf',
     });
+    formData.append('files', pdfFile);
+    formData.append('sessionId', 'test-session-uuid');
 
-    expect(response.status).toBe(200);
-    const data = await response.json();
+    const req = {
+      formData: async () => formData,
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
     expect(data.message).toBe('Documents ingested successfully');
-    expect(data.threadId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
-  });
+    expect(data.threadId).toBe('test-thread-id-123');
 
-  it.skip('should correctly parse PDF files using PDFLoader', async () => {
-    const formData = new FormData();
-    formData.append('files', fs.createReadStream(pdfFilePath), 'test.pdf');
-
-    await fetch(ingestUrl, {
-      method: 'POST',
-      body: formData,
-    });
-
-    expect(processPDF).toHaveBeenCalled();
-  });
-
-  it.skip('should call the ingestion graph with the correct data', async () => {
-    const formData = new FormData();
-    formData.append('files', fs.createReadStream(pdfFilePath), 'test.pdf');
-
-    await fetch(ingestUrl, {
-      method: 'POST',
-      body: formData,
-    });
-
+    // Verify processPDF was called with the file and sessionId
+    expect(processPDF).toHaveBeenCalledWith(pdfFile, 'test-session-uuid');
+    // Verify LangGraph thread and wait was called
     expect(langGraphServerClient.createThread).toHaveBeenCalled();
-    expect(langGraphServerClient.client.runs.stream).toHaveBeenCalledWith(
-      'test-thread-id',
+    expect(langGraphServerClient.client.runs.wait).toHaveBeenCalledWith(
+      'test-thread-id-123',
       'ingestion_graph',
-      {
-        input: {
-          docs: [
-            { pageContent: 'Test content', metadata: { filename: 'test.pdf' } },
-          ],
-        },
-      },
+      expect.objectContaining({
+        input: expect.objectContaining({
+          docs: expect.any(Array),
+        }),
+      }),
     );
   });
 });

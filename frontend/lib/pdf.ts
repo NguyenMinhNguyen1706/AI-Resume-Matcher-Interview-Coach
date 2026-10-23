@@ -49,9 +49,13 @@ export async function processPDF(
  */
 async function bufferFile(file: File): Promise<Buffer> {
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    return buffer;
+    if (typeof file.arrayBuffer === 'function') {
+      const arrayBuffer = await file.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    }
+    const response = new Response(file as any);
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
   } catch (error) {
     console.error('Error buffering file:', error);
     throw new Error('Failed to read file content.');
