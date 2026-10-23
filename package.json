@@ -18,6 +18,7 @@
       "format:check": "yarn run turbo:command format:check",
       "test": "yarn workspace backend test && yarn workspace frontend test",
       "test:e2e": "yarn workspace frontend test:e2e",
+      "test:load": "node tests/load/run.mjs",
       "typecheck": "tsc --noEmit --project backend/tsconfig.json && tsc --noEmit --project frontend/tsconfig.json"
     },
     "devDependencies": {
