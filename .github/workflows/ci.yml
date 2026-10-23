@@ -76,6 +76,7 @@ jobs:
         run: yarn test:e2e
         env:
           CI: true
+          NEXT_PUBLIC_LANGGRAPH_API_URL: http://localhost:2024
 
       - name: Upload Playwright Report Artifact
         uses: actions/upload-artifact@v4
