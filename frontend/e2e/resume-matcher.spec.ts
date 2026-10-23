@@ -3,11 +3,16 @@ import path from 'path';
 
 test.describe('AI Resume Matcher & Interview Coach E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock LangGraph threads creation
-    await page.route('**/threads', async (route) => {
+    // Mock LangGraph threads creation with CORS headers
+    await page.route('*/**/threads*', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': '*',
+        },
         body: JSON.stringify({ thread_id: 'mock_thread_123' }),
       });
     });
@@ -27,6 +32,11 @@ test.describe('AI Resume Matcher & Interview Coach E2E Tests', () => {
     await expect(
       page.getByRole('heading', { name: 'AI Resume Matcher & Interview Coach' }),
     ).toBeVisible({ timeout: 15000 });
+
+    // Wait for client-side hydration to complete (session id generated)
+    await expect(page.locator('header span.font-mono')).toContainText('sess_', {
+      timeout: 10000,
+    });
   });
 
   test('TC01: Verify initial page elements and branding', async ({ page }) => {
@@ -149,6 +159,7 @@ test.describe('AI Resume Matcher & Interview Coach E2E Tests', () => {
     const inputField = page.getByPlaceholder(
       /Tải lên CV .* hoặc gõ tin nhắn/i,
     );
+    await expect(inputField).toBeEnabled({ timeout: 15000 });
     await inputField.fill('Xin chào AI! Bạn hãy cho tôi một lời khuyên phỏng vấn.');
 
     // Wait for submit button to be enabled (threadId initialized)
