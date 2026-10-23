@@ -22,11 +22,12 @@
     "lint:fix": "eslint src --fix",
     "lint:langgraph-json": "node scripts/checkLanggraphPaths.js",
     "lint:all": "yarn lint & yarn lint:langgraph-json",
-    "langgraph:dev": "npx @langchain/langgraph-cli dev"
+    "langgraph:dev": "tsx server.mjs"
   },
   "dependencies": {
     "@langchain/community": "^0.3.26",
     "@langchain/core": "^0.3.32",
+    "@langchain/google-genai": "^0.1",
     "@langchain/langgraph": "^0.2.41",
     "@langchain/langgraph-cli": "^0.0.1",
     "@langchain/langgraph-sdk": "^0.0.36",
@@ -37,7 +38,7 @@
     "pdf-parse": "^1.1.1",
     "uuid": "^11.0.5",
     "ws": "^8.18.0",
-    "zod": "^3.24.1"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
