@@ -6,12 +6,18 @@ interface ExamplePromptsProps {
 
 const EXAMPLE_PROMPTS = [
   {
-    title: "What is this document about?",
+    title: '🎯 Chấm điểm mức độ phù hợp của CV với JD',
   },
   {
-    title: "What is music?",
+    title: '🎙️ Bắt đầu buổi phỏng vấn kỹ thuật thử',
   },
-]
+  {
+    title: '💡 Gợi ý viết lại kinh nghiệm trong CV bằng tiếng Anh',
+  },
+  {
+    title: '🔍 Tóm tắt các điểm mạnh và công nghệ nổi bật trong CV',
+  },
+];
 
 export function ExamplePrompts({ onPromptSelect }: ExamplePromptsProps) {
   return (

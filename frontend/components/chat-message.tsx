@@ -2,6 +2,7 @@ import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { PDFDocument } from '@/types/graphTypes';
 import {
   Accordion,
@@ -51,7 +52,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         ) : (
           <>
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            {isUser ? (
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed break-words space-y-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:text-sm [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1.5 [&_li]:my-0.5 [&_code]:bg-black/10 dark:[&_code]:bg-white/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_strong]:font-semibold">
+                <ReactMarkdown>{message.content}</ReactMarkdown>
+              </div>
+            )}
             {!isUser && (
               <div className="flex gap-2 mt-2">
                 <Button
