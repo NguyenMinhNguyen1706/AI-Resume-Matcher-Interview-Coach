@@ -33,7 +33,7 @@ describe('Prompt Templates', () => {
       console.log(formattedPrompt.toString());
 
       expect(formattedPrompt.toString()).toContain(
-        'You are an assistant for question-answering tasks',
+        'AI Resume Matcher & Senior Technical Interview Coach',
       );
       expect(formattedPrompt.toString()).toContain(context);
       expect(formattedPrompt.toString()).toContain(question);
